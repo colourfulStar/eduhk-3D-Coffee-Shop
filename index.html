@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>3D Coffee Shop</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{overflow:hidden;font-family:'Segoe UI','PingFang SC',sans-serif;background:#1a1208}
+canvas{display:block}
+#crosshair{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:6px;height:6px;background:rgba(255,255,255,.9);border-radius:50%;pointer-events:none;z-index:10;box-shadow:0 0 4px rgba(0,0,0,.5)}
+#prompt{position:fixed;bottom:120px;left:50%;transform:translateX(-50%);color:#fff;background:rgba(0,0,0,.65);padding:10px 22px;border-radius:8px;font-size:15px;display:none;z-index:10;pointer-events:none;white-space:nowrap}
+#start-screen{position:fixed;inset:0;background:rgba(15,10,5,.92);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:100;color:#fff;transition:opacity .5s}
+#start-screen h1{font-size:48px;margin-bottom:8px;color:#e8c9a0;letter-spacing:2px}
+#start-screen .sub{font-size:16px;opacity:.7;margin-bottom:20px}
+#start-screen .controls-info{font-size:14px;opacity:.6;line-height:2;text-align:center}
+#start-screen .btn{margin-top:28px;padding:14px 50px;background:#c8956c;color:#fff;border:none;border-radius:25px;font-size:18px;cursor:pointer;transition:all .3s}
+#start-screen .btn:hover{background:#b3805a;transform:scale(1.05)}
+#coffee-menu{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(30,20,15,.96);padding:32px;border-radius:16px;z-index:50;display:none;color:#fff;min-width:340px;text-align:center;border:1px solid rgba(200,149,108,.3)}
+#coffee-menu h2{margin-bottom:20px;color:#e8c9a0;font-size:22px}
+.coffee-item{display:flex;justify-content:space-between;align-items:center;padding:13px 16px;margin:8px 0;background:rgba(255,255,255,.07);border-radius:8px;cursor:pointer;transition:all .2s;border:1px solid transparent}
+.coffee-item:hover{background:rgba(255,255,255,.14)}
+.coffee-item.selected{background:rgba(200,149,108,.35);border-color:#c8956c}
+.coffee-item .name{font-size:15px}
+.coffee-item .price{color:#e8c9a0;font-size:14px}
+#coffee-menu .actions{margin-top:22px;display:flex;gap:12px;justify-content:center}
+#coffee-menu button{padding:11px 26px;border:none;border-radius:20px;font-size:15px;cursor:pointer;transition:all .2s}
+#btn-make{background:#c8956c;color:#fff}
+#btn-make:hover{background:#b3805a}
+#btn-make:disabled{background:#666;cursor:not-allowed}
+#btn-cancel{background:rgba(255,255,255,.15);color:#fff}
+#btn-cancel:hover{background:rgba(255,255,255,.25)}
+#notification{position:fixed;top:80px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.78);color:#fff;padding:12px 26px;border-radius:8px;font-size:15px;z-index:40;display:none;pointer-events:none;transition:opacity .3s}
+#hud-info{position:fixed;top:15px;left:15px;color:rgba(255,255,255,.65);font-size:13px;z-index:10;pointer-events:none;line-height:1.7;text-shadow:0 1px 3px rgba(0,0,0,.5)}
+#vignette{position:fixed;inset:0;pointer-events:none;z-index:5;background:radial-gradient(ellipse at center,transparent 60%,rgba(0,0,0,.35) 100%)}
+#music-btn{position:fixed;top:15px;right:15px;z-index:20;width:44px;height:44px;border-radius:50%;background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.2);color:#fff;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .3s;backdrop-filter:blur(4px)}
+#music-btn:hover{background:rgba(0,0,0,.7);transform:scale(1.1)}
+#music-btn.muted{opacity:.4;text-decoration:line-through}
+#poster-lightbox{position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:60;display:none;align-items:center;justify-content:center;cursor:zoom-out;flex-direction:column}
+#poster-lightbox img{max-height:88vh;max-width:90vw;object-fit:contain;box-shadow:0 10px 50px rgba(0,0,0,.6)}
+#poster-lightbox .hint{color:rgba(255,255,255,.6);margin-top:14px;font-size:14px}
+#video-overlay{position:fixed;inset:0;background:rgba(0,0,0,.95);z-index:70;display:none;align-items:center;justify-content:center;cursor:zoom-out;flex-direction:column}
+#video-overlay video{max-height:88vh;max-width:90vw;box-shadow:0 10px 50px rgba(0,0,0,.6)}
+#video-overlay .hint{color:rgba(255,255,255,.6);margin-top:14px;font-size:14px}
+</style>
+</head>
+<body>
+<div id="start-screen">
+  <h1>☕ SHOEGAZERS Coffee Shop</h1>
+  <div class="sub">Low Poly 3D Interactive Experience</div>
+  <div class="controls-info">
+    <p>W A S D — Move &nbsp;|&nbsp; Mouse — Look Around</p>
+    <p>Left Click — Interact &nbsp;|&nbsp; E — Drink Coffee &nbsp;|&nbsp; ESC — Release Mouse</p>
+  </div>
+  <button class="btn" id="btn-start">Enter Coffee Shop</button>
+</div>
+<div id="crosshair"></div>
+<div id="prompt"></div>
+<div id="vignette"></div>
+<div id="hud-info"><div>WASD Move · Mouse Look · Left Click Interact · E Drink</div></div>
+<button id="music-btn" title="Music On/Off">♫</button>
+<div id="notification"></div>
+<div id="coffee-menu">
+  <h2>☕ Choose Your Coffee</h2>
+  <div id="coffee-list"></div>
+  <div class="actions">
+    <button id="btn-make" disabled>Make Coffee</button>
+    <button id="btn-cancel">Cancel</button>
+  </div>
+</div>
+<div id="video-overlay">
+  <video id="shop-video" src="cdf6f00fec3c17fb995f4e207bd7a510.mp4" playsinline preload="auto"></video>
+  <div class="hint">Click anywhere to close</div>
+</div>
+<div id="poster-lightbox">
+  <img src="20261104162033_1538_25.png" alt="BLUE HOUR Poster">
+  <div class="hint">Click anywhere to close</div>
+</div>
+
+<script type="importmap">
+{"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js","three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"}}
+</script>
+<script type="module" src="main.js"></script>
+</body>
+</html>
